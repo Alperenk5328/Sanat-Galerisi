@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Siparişlerim - Online Sanat Galerisi{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">Siparişlerim</h1>
+            
+            {% if orders %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Sipariş No</th>
+                            <th>Ürün</th>
+                            <th>Tarih</th>
+                            <th>Tutar</th>
+                            <th>Durum</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td>#{{ order.id }}</td>
+                            <td>
+                                {% if order.artwork %}
+                                <div class="d-flex align-items-center">
+                                    {% if order.artwork.image_url %}
+                                    <img src="{{ url_for('static', filename='images/artworks/' + order.artwork.image_url) }}" 
+                                         class="me-2" style="width: 50px; height: 50px; object-fit: cover;" 
+                                         alt="{{ order.artwork.title }}">
+                                    {% endif %}
+                                    <div>
+                                        <strong>{{ order.artwork.title }}</strong><br>
+                                        <small class="text-muted">Sanat Eseri</small>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <span class="text-muted">Etkinlik/Atölye</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ order.created_at.strftime('%d.%m.%Y') }}</td>
+                            <td>₺{{ "%.2f"|format(order.total_price) }}</td>
+                            <td>
+                                {% if order.status == 'pending' %}
+                                <span class="badge bg-warning">Beklemede</span>
+                                {% elif order.status == 'completed' %}
+                                <span class="badge bg-success">Tamamlandı</span>
+                                {% elif order.status == 'cancelled' %}
+                                <span class="badge bg-danger">İptal Edildi</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    {% if order.artwork %}
+                                    <a href="{{ url_for('artwork_detail', id=order.artwork.id) }}" 
+                                       class="btn btn-sm btn-outline-primary">Detay</a>
+                                    {% endif %}
+                                    {% if order.status == 'pending' %}
+                                    <button class="btn btn-sm btn-outline-danger" 
+                                            onclick="confirmOrderCancel({{ order.id }})">İptal</button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-shopping-bag fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">Henüz siparişiniz yok</h4>
+                <p class="text-muted">Alışverişe başlamak için galeriye gidin</p>
+                <a href="{{ url_for('gallery') }}" class="btn btn-primary">Galeriye Git</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmOrderCancel(orderId) {
+    if (confirm('Bu siparişi iptal etmek istediğinize emin misiniz?')) {
+        // İptal işlemi için form gönderilebilir
+        window.location.href = '/cancel_order/' + orderId;
+    }
+}
+</script>
+{% endblock %}

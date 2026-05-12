@@ -1,0 +1,11 @@
+Kullanıcı Hesapları:
+Admin: admin / admin123
+Sanatçı 1: ahmet_sanatci / sanat123
+Sanatçı 2: ayse_sanatci / sanat123
+Koleksiyoncu 1: mehmet_koleksiyoncu / kole123
+Koleksiyoncu 2: zeynep_koleksiyoncu / kole123
+
+İndirim Kodları:
+WELCOME10 - %10 indirim
+ARTIST20 - %20 indirim
+WORKSHOP100 - 100 TL indirim

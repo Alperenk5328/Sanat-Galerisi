@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Rezervasyonlarım - Online Sanat Galerisi{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">Rezervasyonlarım</h1>
+            
+            {% if reservations %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Etkinlik</th>
+                            <th>Tarih</th>
+                            <th>Katılımcı</th>
+                            <th>Ücret</th>
+                            <th>Durum</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for reservation in reservations %}
+                        <tr>
+                            <td>
+                                <strong>{{ reservation.event.title }}</strong><br>
+                                <small class="text-muted">{{ reservation.event.location }}</small>
+                            </td>
+                            <td>
+                                {{ reservation.event.event_date.strftime('%d.%m.%Y %H:%M') }}<br>
+                                <small class="text-muted">{{ reservation.reservation_date.strftime('%d.%m.%Y') }}</small>
+                            </td>
+                            <td>{{ reservation.participant_count }} kişi</td>
+                            <td>₺{{ "%.2f"|format(reservation.total_price) }}</td>
+                            <td>
+                                {% if reservation.status == 'confirmed' %}
+                                <span class="badge bg-success">Onaylandı</span>
+                                {% elif reservation.status == 'cancelled' %}
+                                <span class="badge bg-danger">İptal Edildi</span>
+                                {% elif reservation.status == 'completed' %}
+                                <span class="badge bg-primary">Tamamlandı</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{{ url_for('event_detail', id=reservation.event.id) }}" 
+                                       class="btn btn-sm btn-outline-primary">Detay</a>
+                                    {% if reservation.status == 'confirmed' %}
+                                    <a href="{{ url_for('update_reservation', reservation_id=reservation.id) }}" 
+                                       class="btn btn-sm btn-outline-secondary">Güncelle</a>
+                                    <a href="{{ url_for('cancel_reservation', reservation_id=reservation.id) }}" 
+                                       class="btn btn-sm btn-outline-danger" 
+                                       onclick="return confirm('Rezervasyonu iptal etmek istediğinize emin misiniz?')">İptal</a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-calendar-check fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">Henüz rezervasyonunuz yok</h4>
+                <p class="text-muted">Atölye ve etkinliklere rezervasyon yapın</p>
+                <a href="{{ url_for('events') }}" class="btn btn-primary">Etkinlikleri Gör</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

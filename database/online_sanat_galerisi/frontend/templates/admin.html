@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Panel - Online Sanat Galerisi{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2>Admin Panel</h2>
+        <p class="text-muted">Sistem yönetimi ve raporlama</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h5 class="card-title">Toplam Kullanıcı</h5>
+                <h2>{{ users|length }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h5 class="card-title">Toplam Eser</h5>
+                <h2>{{ artworks|length }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <h5 class="card-title">Toplam Sipariş</h5>
+                <h2>{{ orders|length }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h5 class="card-title">Bekleyen Sipariş</h5>
+                <h2>{{ orders|selectattr('status', 'equalto', 'pending')|list|length }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Yeni Kullanıcılar</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Kullanıcı Adı</th>
+                                <th>E-posta</th>
+                                <th>Tip</th>
+                                <th>Kayıt Tarihi</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users[:5] %}
+                            <tr>
+                                <td>{{ user.username }}</td>
+                                <td>{{ user.email }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'primary' if user.user_type == 'artist' else 'secondary' }}">
+                                        {{ user.user_type }}
+                                    </span>
+                                </td>
+                                <td>{{ user.created_at.strftime('%d.%m.%Y') }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary">Düzenle</button>
+                                        <button class="btn btn-outline-danger">Sil</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <a href="#" class="btn btn-sm btn-outline-primary">Tümünü Gör</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Son Siparişler</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Kullanıcı</th>
+                                <th>Eser</th>
+                                <th>Fiyat</th>
+                                <th>Durum</th>
+                                <th>Tarih</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders[:5] %}
+                            <tr>
+                                <td>{{ order.user.username }}</td>
+                                <td>{{ order.artwork.title }}</td>
+                                <td>{{ "%.2f"|format(order.total_price) }} TL</td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if order.status == 'completed' else 'warning' }}">
+                                        {{ order.status }}
+                                    </span>
+                                </td>
+                                <td>{{ order.created_at.strftime('%d.%m.%Y') }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <a href="#" class="btn btn-sm btn-outline-primary">Tümünü Gör</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>Onay Bekleyen Eserler</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Eser Adı</th>
+                                <th>Sanatçı</th>
+                                <th>Fiyat</th>
+                                <th>Kategori</th>
+                                <th>Eklenme Tarihi</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for artwork in artworks|selectattr('status', 'equalto', 'pending') %}
+                            <tr>
+                                <td>{{ artwork.title }}</td>
+                                <td>{{ artwork.artist.username }}</td>
+                                <td>{{ "%.2f"|format(artwork.price) }} TL</td>
+                                <td>{{ artwork.category.name }}</td>
+                                <td>{{ artwork.created_at.strftime('%d.%m.%Y') }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-success">Onayla</button>
+                                        <button class="btn btn-outline-danger">Reddet</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center">Onay bekleyen eser bulunmamaktadır.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Yeni Kategori Ekle</h5>
+            </div>
+            <div class="card-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="category_name" class="form-label">Kategori Adı</label>
+                        <input type="text" class="form-control" id="category_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="category_description" class="form-label">Açıklama</label>
+                        <textarea class="form-control" id="category_description" rows="3"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Ekle</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>Sistem Ayarları</h5>
+            </div>
+            <div class="card-body">
+                <form>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="site_title" class="form-label">Site Başlığı</label>
+                                <input type="text" class="form-control" id="site_title" value="Online Sanat Galerisi">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="site_email" class="form-label">Site E-posta</label>
+                                <input type="email" class="form-control" id="site_email" value="info@sanatgalerisi.com">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="site_description" class="form-label">Site Açıklaması</label>
+                        <textarea class="form-control" id="site_description" rows="3">Sanatçılar ve sanat severler için buluşma noktası.</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Ayarları Kaydet</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}Ödeme - Online Sanat Galerisi{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <h1 class="mb-4">Ödeme</h1>
+            
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="mb-4">Sipariş Detayları</h5>
+                    
+                    {% for item in cart_items %}
+                    <div class="row align-items-center mb-3 pb-3 border-bottom">
+                        <div class="col-md-2">
+                            {% if item.artwork %}
+                                {% if item.artwork.image_url %}
+                                <img src="{{ url_for('static', filename='images/artworks/' + item.artwork.image_url) }}" 
+                                     class="img-fluid rounded" alt="{{ item.artwork.title }}">
+                                {% else %}
+                                <div class="bg-light rounded d-flex align-items-center justify-content-center" 
+                                     style="height: 80px;">
+                                    <i class="fas fa-image fa-2x text-muted"></i>
+                                </div>
+                                {% endif %}
+                            {% elif item.event %}
+                                {% if item.event.image_url %}
+                                <img src="{{ url_for('static', filename='images/workshops/' + item.event.image_url) }}" 
+                                     class="img-fluid rounded" alt="{{ item.event.title }}">
+                                {% else %}
+                                <div class="bg-light rounded d-flex align-items-center justify-content-center" 
+                                     style="height: 80px;">
+                                    <i class="fas fa-calendar-alt fa-2x text-muted"></i>
+                                </div>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-8">
+                            <h6>
+                                {% if item.artwork %}
+                                    {{ item.artwork.title }}
+                                    <small class="text-muted d-block">Sanat Eseri</small>
+                                {% elif item.event %}
+                                    {{ item.event.title }}
+                                    <small class="text-muted d-block">Atölye/Etkinlik</small>
+                                {% endif %}
+                            </h6>
+                            <small class="text-muted">
+                                {% if item.artwork %}
+                                    Sanatçı: {{ item.artwork.artist.username }}
+                                {% elif item.event %}
+                                    Tarih: {{ item.event.event_date.strftime('%d.%m.%Y') }}
+                                {% endif %}
+                            </small>
+                        </div>
+                        
+                        <div class="col-md-2 text-end">
+                            <span class="h5">₺{{ "%.2f"|format(item.artwork.price if item.artwork else item.event.price) }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5 class="mb-4">Ödeme Bilgileri</h5>
+                    
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">İsim Soyisim</label>
+                                <input type="text" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">E-posta</label>
+                                <input type="email" class="form-control" value="{{ current_user.email }}" required>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Telefon</label>
+                                <input type="tel" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Adres</label>
+                                <input type="text" class="form-control" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Ödeme Yöntemi</label>
+                            <select name="payment_method" class="form-select" required>
+                                <option value="">Seçin...</option>
+                                <option value="credit_card">Kredi Kartı</option>
+                                <option value="bank_transfer">Havale/EFT</option>
+                                <option value="cash">Kapıda Ödeme</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">İndirim Kodu (isteğe bağlı)</label>
+                            <div class="input-group">
+                                <input type="text" name="discount_code" class="form-control" 
+                                       placeholder="İndirim kodu girin...">
+                                <button type="submit" class="btn btn-outline-secondary">Uygula</button>
+                            </div>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="terms" required>
+                            <label class="form-check-label" for="terms">
+                                <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Kullanım koşullarını</a> 
+                                kabul ediyorum
+                            </label>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-lg">Ödemeyi Tamamla</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Sipariş Özeti</h5>
+                    <hr>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Ara Toplam:</span>
+                        <span>₺{{ "%.2f"|format(total) }}</span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>İndirim:</span>
+                        <span class="text-success">-₺0.00</span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Kargo:</span>
+                        <span>₺0.00</span>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="d-flex justify-content-between mb-3">
+                        <h5>Genel Toplam:</h5>
+                        <h5 class="text-primary">₺{{ "%.2f"|format(total) }}</h5>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <small>Sanat eserleri teslimat süresi 3-5 iş günüdür.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Terms Modal -->
+<div class="modal fade" id="termsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Kullanım Koşulları</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h6>1. Genel Koşullar</h6>
+                <p>Bu web sitesini kullanarak aşağıdaki koşulları kabul etmiş olursunuz.</p>
+                
+                <h6>2. Ürünler</h6>
+                <p>Tüm sanat eserleri orijinal ve sertifikalıdır.</p>
+                
+                <h6>3. Fiyatlar</h6>
+                <p>Fiyatlar KDV dahildir ve değiştirilebilir.</p>
+                
+                <h6>4. İade ve Değişim</h6>
+                <p>Sanat eserlerinde iade/değişim yapılmamaktadır.</p>
+                
+                <h6>5. Teslimat</h6>
+                <p>Teslimat süresi 3-5 iş günüdür.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
