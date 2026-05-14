@@ -4,8 +4,13 @@
 
 {% block content %}
 <div class="row mb-4">
-    <div class="col-12">
+    <div class="col-8">
         <h2>Sanat Galerisi</h2>
+    </div>
+    <div class="col-4 text-end">
+        {% if current_user.is_authenticated and current_user.user_type == 'artist' %}
+        <a href="{{ url_for('add_artwork') }}" class="btn btn-success">Eser Ekle</a>
+        {% endif %}
     </div>
 </div>
 

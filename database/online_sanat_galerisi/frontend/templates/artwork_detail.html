@@ -51,12 +51,6 @@
                     </small>
                 </div>
                 
-                {% if current_user.is_authenticated and artwork.status == 'active' %}
-                <div class="d-grid">
-                    <button class="btn btn-primary btn-lg">Satın Al</button>
-                </div>
-                {% endif %}
-                
                 <div class="mt-3">
                     {% if current_user.is_authenticated %}
                     <div class="btn-group w-100" role="group">
@@ -71,7 +65,7 @@
                     </div>
                     {% else %}
                     <a href="{{ url_for('login') }}" class="btn btn-outline-primary w-100">
-                        <i class="fas fa-sign-in-alt"></i> Giriş Yapıp Satın Al
+                        <i class="fas fa-sign-in-alt"></i> Giriş Yapıp Sepete Ekle
                     </a>
                     {% endif %}
                 </div>

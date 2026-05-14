@@ -24,7 +24,13 @@
                 {% if user.bio %}
                     <p>{{ user.bio }}</p>
                 {% endif %}
-                <button class="btn btn-primary">Profili Düzenle</button>
+                <div class="d-grid gap-2">
+                    <a href="#account-settings" class="btn btn-primary">Profili Düzenle</a>
+                    {% if user.user_type == 'artist' %}
+                    <a href="{{ url_for('add_artwork') }}" class="btn btn-success">Yeni Eser Ekle</a>
+                    <a href="{{ url_for('add_event') }}" class="btn btn-warning">Yeni Etkinlik Ekle</a>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
@@ -32,8 +38,9 @@
     <div class="col-md-8">
         {% if user.user_type == 'artist' %}
         <div class="card mb-4">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h5>Eserlerim</h5>
+                <a href="{{ url_for('add_artwork') }}" class="btn btn-sm btn-success">Yeni Eser Ekle</a>
             </div>
             <div class="card-body">
                 <div class="row">
@@ -45,7 +52,7 @@
                             <div class="card-body">
                                 <h6 class="card-title">{{ artwork.title }}</h6>
                                 <p class="card-text">
-                                    <small class="text-muted">{{ "%.2f"|format(artwork.price) }} TL</small>
+                                    <small class="text-muted">{{ "%.2f"|format(artwork.price / 100) }} TL</small>
                                 </p>
                                 <div class="btn-group btn-group-sm">
                                     <a href="{{ url_for('artwork_detail', id=artwork.id) }}" class="btn btn-outline-primary">Gör</a>
@@ -57,13 +64,164 @@
                     {% else %}
                     <div class="col-12 text-center">
                         <p>Henüz eser eklenmemiş.</p>
-                        <button class="btn btn-primary">İlk Eseri Ekle</button>
+                        <a href="{{ url_for('add_artwork') }}" class="btn btn-primary">İlk Eseri Ekle</a>
                     </div>
                     {% endfor %}
                 </div>
             </div>
         </div>
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5>Etkinliklerim</h5>
+                <a href="{{ url_for('add_event') }}" class="btn btn-sm btn-warning">Yeni Etkinlik Ekle</a>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for event in user.instructed_events %}
+                    <div class="col-md-6 mb-3">
+                        <div class="card">
+                            {% if event.image_url %}
+                            <img src="{{ url_for('static', filename='images/workshops/' + event.image_url) }}" 
+                                 class="card-img-top" alt="{{ event.title }}" style="height: 150px; object-fit: cover;">
+                            {% endif %}
+                            <div class="card-body">
+                                <h6 class="card-title">{{ event.title }}</h6>
+                                <p class="card-text text-muted mb-2">
+                                    {{ event.event_date.strftime('%d.%m.%Y %H:%M') }} | {{ event.duration_hours }} saat
+                                </p>
+                                <p class="card-text">
+                                    <small class="text-muted">Kontenjan: {{ event.current_participants }}/{{ event.max_participants }}</small>
+                                </p>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('event_detail', id=event.id) }}" class="btn btn-outline-primary">Gör</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="col-12 text-center">
+                        <p>Henüz etkinlik eklenmemiş.</p>
+                        <a href="{{ url_for('add_event') }}" class="btn btn-warning">İlk Etkinliği Ekle</a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Onay Bekleyen Rezervasyonlar</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Etkinlik</th>
+                                <th>Katılımcı</th>
+                                <th>Kişi Sayısı</th>
+                                <th>Tarih</th>
+                                <th>İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for event in user.instructed_events %}
+                            {% for reservation in event.reservations %}
+                            {% if not reservation.approved and reservation.status == 'confirmed' %}
+                            <tr>
+                                <td>{{ event.title }}</td>
+                                <td>{{ reservation.user.username }}</td>
+                                <td>{{ reservation.participant_count }}</td>
+                                <td>{{ reservation.reservation_date.strftime('%d.%m.%Y') }}</td>
+                                <td>
+                                    <a href="{{ url_for('approve_reservation', reservation_id=reservation.id) }}" 
+                                       class="btn btn-success btn-sm">Onayla</a>
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Onay Bekleyen Siparişler</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Eser</th>
+                                <th>Alıcı</th>
+                                <th>Fiyat</th>
+                                <th>Tarih</th>
+                                <th>İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for artwork in user.artworks %}
+                            {% for order in artwork.orders %}
+                            {% if not order.approved and order.status == 'pending' %}
+                            <tr>
+                                <td>{{ artwork.title }}</td>
+                                <td>{{ order.user.username }}</td>
+                                <td>{{ "%.2f"|format(order.total_price / 100) }} TL</td>
+                                <td>{{ order.created_at.strftime('%d.%m.%Y') }}</td>
+                                <td>
+                                    <a href="{{ url_for('approve_order', order_id=order.id) }}" 
+                                       class="btn btn-success btn-sm">Onayla</a>
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
         {% endif %}
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Rezervasyonlarım</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Etkinlik</th>
+                                <th>Kişi</th>
+                                <th>Tarih</th>
+                                <th>Durum</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for reservation in user.reservations %}
+                            <tr>
+                                <td>{{ reservation.event.title }}</td>
+                                <td>{{ reservation.participant_count }}</td>
+                                <td>{{ reservation.reservation_date.strftime('%d.%m.%Y') }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if reservation.approved else 'warning' }}">
+                                        {{ reservation.status }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center">Henüz rezervasyon bulunmamaktadır.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
         
         <div class="card mb-4">
             <div class="card-header">
@@ -108,14 +266,26 @@
                 <h5>Hesap Ayarları</h5>
             </div>
             <div class="card-body">
-                <form>
+                <form action="{{ url_for('profile') }}" method="post" id="account-settings">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Kullanıcı Adı</label>
+                        <input type="text" name="username" class="form-control" id="username" value="{{ user.username }}" required>
+                    </div>
                     <div class="mb-3">
                         <label for="email" class="form-label">E-posta</label>
-                        <input type="email" class="form-control" id="email" value="{{ user.email }}" readonly>
+                        <input type="email" name="email" class="form-control" id="email" value="{{ user.email }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Yeni Şifre</label>
+                        <input type="password" name="password" class="form-control" id="password" placeholder="Yeni şifre (isteğe bağlı)">
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirm_password" class="form-label">Yeni Şifre Tekrar</label>
+                        <input type="password" name="confirm_password" class="form-control" id="confirm_password" placeholder="Yeni şifreyi tekrar girin">
                     </div>
                     <div class="mb-3">
                         <label for="bio" class="form-label">Biyografi</label>
-                        <textarea class="form-control" id="bio" rows="3">{{ user.bio or '' }}</textarea>
+                        <textarea name="bio" class="form-control" id="bio" rows="3">{{ user.bio or '' }}</textarea>
                     </div>
                     <button type="submit" class="btn btn-primary">Güncelle</button>
                 </form>

@@ -51,19 +51,6 @@
                             Kalan kontenjan: {{ event.max_participants - event.current_participants }} kişi
                         </div>
                         
-                        <div class="card bg-light mb-3">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <span>Birim Fiyat:</span>
-                                    <span>₺{{ "%.2f"|format(event.price) }}</span>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <span>Toplam:</span>
-                                    <span class="h5 text-primary mb-0" id="total-price">₺{{ "%.2f"|format(event.price) }}</span>
-                                </div>
-                            </div>
-                        </div>
-                        
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary">Rezervasyonu Tamamla</button>
                             <a href="{{ url_for('event_detail', id=event.id) }}" class="btn btn-outline-secondary">İptal</a>
@@ -74,13 +61,4 @@
         </div>
     </div>
 </div>
-
-<script>
-document.querySelector('select[name="participant_count"]').addEventListener('change', function() {
-    const count = parseInt(this.value);
-    const unitPrice = {{ event.price }};
-    const total = count * unitPrice;
-    document.getElementById('total-price').textContent = '₺' + total.toFixed(2);
-});
-</script>
 {% endblock %}

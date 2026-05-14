@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Yeni Etkinlik Ekle - Online Sanat Galerisi{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Yeni Etkinlik Ekle</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('add_event') }}">
+                        <div class="mb-3">
+                            <label class="form-label">Başlık</label>
+                            <input type="text" name="title" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Açıklama</label>
+                            <textarea name="description" class="form-control" rows="4" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Kategori</label>
+                            <select name="category_id" class="form-select" required>
+                                <option value="">Kategori seçin...</option>
+                                {% for category in categories %}
+                                <option value="{{ category.id }}">{{ category.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Etkinlik Tarihi</label>
+                                <input type="datetime-local" name="event_date" class="form-control" required>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Süre (saat)</label>
+                                <input type="number" name="duration_hours" class="form-control" value="2" min="1" required>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Kontenjan</label>
+                                <input type="number" name="max_participants" class="form-control" value="10" min="1" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Lokasyon</label>
+                            <input type="text" name="location" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Görsel Dosya Adı</label>
+                            <input type="text" name="image_url" class="form-control" placeholder="örnek: workshop.jpg">
+                            <div class="form-text">Bu dosya adı frontend/static/images/workshops içinde mevcut olmalı.</div>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Etkinliği Oluştur</button>
+                            <a href="{{ url_for('profile') }}" class="btn btn-outline-secondary">İptal</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

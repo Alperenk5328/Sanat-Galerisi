@@ -84,6 +84,7 @@ class Order(db.Model):
     artwork_id = db.Column(db.Integer, db.ForeignKey('artworks.id'), nullable=True)
     total_price = db.Column(db.Integer, nullable=False)
     status = db.Column(db.String(20), default='pending')  # pending, completed, cancelled
+    approved = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 # Event/Workshop Models
@@ -108,6 +109,7 @@ class Event(db.Model):
     
     # Relationships
     instructor = db.relationship('User', backref='instructed_events')
+    category = db.relationship('Category', backref='events')
     reservations = db.relationship('Reservation', backref='event', lazy=True)
     comments = db.relationship('EventComment', backref='event', lazy=True)
 
@@ -120,6 +122,7 @@ class Reservation(db.Model):
     participant_count = db.Column(db.Integer, default=1)
     total_price = db.Column(db.Integer, nullable=False)
     status = db.Column(db.String(20), default='confirmed')  # confirmed, cancelled, completed
+    approved = db.Column(db.Boolean, default=False)
     reservation_date = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -371,10 +374,140 @@ def artwork_detail(id):
     
     return render_template('artwork_detail.html', artwork=artwork)
 
-@app.route('/profile')
+@app.route('/profile', methods=['GET', 'POST'])
 @login_required
 def profile():
+    if request.method == 'POST':
+        username = request.form.get('username', current_user.username).strip()
+        email = request.form.get('email', current_user.email).strip()
+        bio = request.form.get('bio', current_user.bio or '').strip()
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
+
+        if not username or not email:
+            flash('Kullanıcı adı ve e-posta boş olamaz.', 'error')
+            return redirect(url_for('profile'))
+
+        if username != current_user.username and User.query.filter_by(username=username).first():
+            flash('Bu kullanıcı adı zaten kullanılıyor.', 'error')
+            return redirect(url_for('profile'))
+
+        if email != current_user.email and User.query.filter_by(email=email).first():
+            flash('Bu e-posta zaten kullanılıyor.', 'error')
+            return redirect(url_for('profile'))
+
+        if password:
+            if password != confirm_password:
+                flash('Şifreler eşleşmiyor.', 'error')
+                return redirect(url_for('profile'))
+            current_user.set_password(password)
+
+        current_user.username = username
+        current_user.email = email
+        current_user.bio = bio
+        db.session.commit()
+
+        flash('Profiliniz güncellendi.', 'success')
+        return redirect(url_for('profile'))
+
     return render_template('profile.html', user=current_user)
+
+@app.route('/add_artwork', methods=['GET', 'POST'])
+@login_required
+def add_artwork():
+    if current_user.user_type != 'artist':
+        flash('Sadece sanatçılar eser ekleyebilir.', 'error')
+        return redirect(url_for('profile'))
+
+    categories = Category.query.all()
+
+    if request.method == 'POST':
+        title = request.form.get('title')
+        description = request.form.get('description')
+        price_input = request.form.get('price', '0')
+        image_url = request.form.get('image_url')
+        category_id = request.form.get('category_id')
+        tags = request.form.get('tags')
+
+        if not title or not description or not category_id:
+            flash('Başlık, açıklama ve kategori gereklidir.', 'error')
+            return render_template('add_artwork.html', categories=categories)
+
+        try:
+            price = int(float(price_input) * 100)
+        except ValueError:
+            flash('Geçerli bir fiyat girin.', 'error')
+            return render_template('add_artwork.html', categories=categories)
+
+        artwork = Artwork(
+            title=title,
+            description=description,
+            price=price,
+            image_url=image_url,
+            artist_id=current_user.id,
+            category_id=int(category_id),
+            tags=tags,
+            status='active'
+        )
+        db.session.add(artwork)
+        db.session.commit()
+
+        flash('Eser başarıyla eklendi!', 'success')
+        return redirect(url_for('profile'))
+
+    return render_template('add_artwork.html', categories=categories)
+
+@app.route('/add_event', methods=['GET', 'POST'])
+@login_required
+def add_event():
+    if current_user.user_type != 'artist':
+        flash('Sadece sanatçılar etkinlik ekleyebilir.', 'error')
+        return redirect(url_for('profile'))
+
+    categories = Category.query.all()
+
+    if request.method == 'POST':
+        title = request.form.get('title')
+        description = request.form.get('description')
+        image_url = request.form.get('image_url')
+        category_id = request.form.get('category_id')
+        event_date_str = request.form.get('event_date')
+        duration_hours = request.form.get('duration_hours', '2')
+        max_participants = request.form.get('max_participants', '1')
+        location = request.form.get('location')
+
+        if not title or not description or not category_id or not event_date_str or not location:
+            flash('Başlık, açıklama, tarih, kategori ve lokasyon gereklidir.', 'error')
+            return render_template('add_event.html', categories=categories)
+
+        try:
+            event_date = datetime.strptime(event_date_str, '%Y-%m-%dT%H:%M')
+            duration_hours = int(duration_hours)
+            max_participants = int(max_participants)
+        except ValueError:
+            flash('Geçerli bir tarih ve sayı değerleri girin.', 'error')
+            return render_template('add_event.html', categories=categories)
+
+        event = Event(
+            title=title,
+            description=description,
+            image_url=image_url,
+            instructor_id=current_user.id,
+            category_id=int(category_id),
+            event_date=event_date,
+            duration_hours=duration_hours,
+            max_participants=max_participants,
+            location=location,
+            price=0,
+            status='active'
+        )
+        db.session.add(event)
+        db.session.commit()
+
+        flash('Etkinlik başarıyla oluşturuldu!', 'success')
+        return redirect(url_for('profile'))
+
+    return render_template('add_event.html', categories=categories)
 
 @app.route('/update_profile', methods=['POST'])
 @login_required
@@ -561,13 +694,12 @@ def reserve_event(event_id):
             flash('Yeterli kontenjan yok!', 'error')
             return redirect(url_for('event_detail', id=event_id))
         
-        total_price = event.price * participant_count
-        
         reservation = Reservation(
             user_id=current_user.id,
             event_id=event_id,
             participant_count=participant_count,
-            total_price=total_price
+            total_price=0,
+            approved=False
         )
         
         event.current_participants += participant_count
@@ -608,7 +740,7 @@ def update_reservation(reservation_id):
             
             reservation.event.current_participants += diff
             reservation.participant_count = participant_count
-            reservation.total_price = reservation.event.price * participant_count
+            reservation.total_price = 0
             
             db.session.commit()
             flash('Rezervasyon güncellendi!', 'success')
@@ -632,6 +764,58 @@ def cancel_reservation(reservation_id):
     flash('Rezervasyon iptal edildi!', 'info')
     return redirect(url_for('my_reservations'))
 
+@app.route('/approve_reservation/<int:reservation_id>')
+@login_required
+def approve_reservation(reservation_id):
+    reservation = Reservation.query.get_or_404(reservation_id)
+    
+    if reservation.event.instructor_id != current_user.id:
+        flash('Bu rezervasyonu onaylama yetkiniz yok!', 'error')
+        return redirect(url_for('profile'))
+    
+    reservation.approved = True
+    db.session.commit()
+    flash('Rezervasyon onaylandı!', 'success')
+    return redirect(url_for('profile'))
+
+@app.route('/approve_order/<int:order_id>')
+@login_required
+def approve_order(order_id):
+    order = Order.query.get_or_404(order_id)
+    
+    if order.artwork.artist_id != current_user.id:
+        flash('Bu siparişi onaylama yetkiniz yok!', 'error')
+        return redirect(url_for('profile'))
+    
+    order.approved = True
+    order.status = 'completed'
+    db.session.commit()
+    flash('Sipariş onaylandı!', 'success')
+    return redirect(url_for('profile'))
+
+@app.route('/cancel_order/<int:order_id>')
+@login_required
+def cancel_order(order_id):
+    order = Order.query.get_or_404(order_id)
+    
+    if order.user_id != current_user.id:
+        flash('Bu siparişi iptal etme yetkiniz yok!', 'error')
+        return redirect(url_for('my_orders'))
+    
+    if order.status != 'pending':
+        flash('Bu sipariş artık iptal edilemez.', 'warning')
+        return redirect(url_for('my_orders'))
+    
+    order.status = 'cancelled'
+    order.approved = False
+    
+    if order.artwork:
+        order.artwork.status = 'active'
+    
+    db.session.commit()
+    flash('Sipariş iptal edildi!', 'info')
+    return redirect(url_for('my_orders'))
+
 @app.route('/cart')
 @login_required
 def cart():
@@ -646,8 +830,8 @@ def add_to_cart(item_type, item_id):
         item = Artwork.query.get_or_404(item_id)
         existing = Cart.query.filter_by(user_id=current_user.id, artwork_id=item_id).first()
     elif item_type == 'event':
-        item = Event.query.get_or_404(item_id)
-        existing = Cart.query.filter_by(user_id=current_user.id, event_id=item_id).first()
+        flash('Etkinlikler sepete eklenemez. Lütfen rezervasyon yapın.', 'warning')
+        return redirect(url_for('reserve_event', event_id=item_id))
     else:
         flash('Geçersiz ürün tipi!', 'error')
         return redirect(request.referrer or url_for('index'))
@@ -658,7 +842,7 @@ def add_to_cart(item_type, item_id):
         cart_item = Cart(
             user_id=current_user.id,
             artwork_id=item_id if item_type == 'artwork' else None,
-            event_id=item_id if item_type == 'event' else None
+            event_id=None
         )
         db.session.add(cart_item)
         flash('Ürün sepete eklendi!', 'success')
@@ -720,21 +904,24 @@ def checkout():
                 order = Order(
                     user_id=current_user.id,
                     artwork_id=item.artwork_id,
-                    total_price=item.artwork.price
+                    total_price=item.artwork.price,
+                    approved=False
                 )
                 item.artwork.status = 'sold'
             elif item.event:
                 order = Order(
                     user_id=current_user.id,
                     artwork_id=None,
-                    total_price=item.event.price
+                    total_price=item.event.price,
+                    approved=False
                 )
                 # Create reservation for event
                 reservation = Reservation(
                     user_id=current_user.id,
                     event_id=item.event_id,
                     participant_count=1,
-                    total_price=item.event.price
+                    total_price=item.event.price,
+                    approved=False
                 )
                 db.session.add(reservation)
             
