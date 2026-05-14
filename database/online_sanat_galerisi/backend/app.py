@@ -64,7 +64,7 @@ class Artwork(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text)
-    price = db.Column(db.Numeric(10, 2), nullable=False)
+    price = db.Column(db.Integer, nullable=False)
     image_url = db.Column(db.String(255), nullable=False)
     artist_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=False)
@@ -82,7 +82,7 @@ class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     artwork_id = db.Column(db.Integer, db.ForeignKey('artworks.id'), nullable=True)
-    total_price = db.Column(db.Numeric(10, 2), nullable=False)
+    total_price = db.Column(db.Integer, nullable=False)
     status = db.Column(db.String(20), default='pending')  # pending, completed, cancelled
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -100,7 +100,7 @@ class Event(db.Model):
     duration_hours = db.Column(db.Integer, default=2)
     max_participants = db.Column(db.Integer, nullable=False)
     current_participants = db.Column(db.Integer, default=0)
-    price = db.Column(db.Numeric(10, 2), nullable=False)
+    price = db.Column(db.Integer, nullable=False)
     location = db.Column(db.String(255))
     status = db.Column(db.String(20), default='active')  # active, cancelled, completed
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -118,7 +118,7 @@ class Reservation(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     event_id = db.Column(db.Integer, db.ForeignKey('events.id'), nullable=False)
     participant_count = db.Column(db.Integer, default=1)
-    total_price = db.Column(db.Numeric(10, 2), nullable=False)
+    total_price = db.Column(db.Integer, nullable=False)
     status = db.Column(db.String(20), default='confirmed')  # confirmed, cancelled, completed
     reservation_date = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -195,8 +195,8 @@ class Discount(db.Model):
     code = db.Column(db.String(50), unique=True, nullable=False)
     description = db.Column(db.Text)
     discount_type = db.Column(db.String(20), default='percentage')  # percentage, fixed
-    discount_value = db.Column(db.Numeric(10, 2), nullable=False)
-    min_amount = db.Column(db.Numeric(10, 2), default=0)
+    discount_value = db.Column(db.Integer, nullable=False)
+    min_amount = db.Column(db.Integer, default=0)
     max_uses = db.Column(db.Integer)
     used_count = db.Column(db.Integer, default=0)
     valid_from = db.Column(db.DateTime, default=datetime.utcnow)

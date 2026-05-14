@@ -34,7 +34,7 @@
                         </div>
                         <div class="col-md-6">
                             <h5>Fiyat</h5>
-                            <p class="h3 text-primary">₺{{ "%.2f"|format(event.price) }}/kişi</p>
+                            <p class="h3 text-primary">₺{{ "%.2f"|format(event.price / 100) }}/kişi</p>
                             
                             {% if current_user.is_authenticated %}
                             {% if event.current_participants < event.max_participants %}
