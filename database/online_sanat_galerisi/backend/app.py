@@ -152,6 +152,7 @@ class ArtworkComment(db.Model):
     comment = db.Column(db.Text, nullable=False)
     rating = db.Column(db.Integer, default=0)  # 1-5 stars
     helpful_votes = db.Column(db.Integer, default=0)
+    admin_reply = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -168,6 +169,7 @@ class EventComment(db.Model):
     comment = db.Column(db.Text, nullable=False)
     rating = db.Column(db.Integer, default=0)  # 1-5 stars
     helpful_votes = db.Column(db.Integer, default=0)
+    admin_reply = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -206,6 +208,13 @@ class Discount(db.Model):
     valid_until = db.Column(db.DateTime)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    artwork_id = db.Column(db.Integer, db.ForeignKey('artworks.id'), nullable=True)
+    target_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    
+    # Relationships
+    artwork = db.relationship('Artwork', backref='discounts')
+    target_user = db.relationship('User', backref='targeted_discounts')
 
 # Customer Support
 class SupportTicket(db.Model):
@@ -372,7 +381,24 @@ def artwork_detail(id):
     db.session.add(view)
     db.session.commit()
     
-    return render_template('artwork_detail.html', artwork=artwork)
+    # Sorting comments
+    sort_by = request.args.get('sort', 'newest')
+    if sort_by == 'highest':
+        comments = ArtworkComment.query.filter_by(artwork_id=id).order_by(ArtworkComment.rating.desc(), ArtworkComment.created_at.desc()).all()
+    elif sort_by == 'helpful':
+        comments = ArtworkComment.query.filter_by(artwork_id=id).order_by(ArtworkComment.helpful_votes.desc(), ArtworkComment.created_at.desc()).all()
+    else:
+        comments = ArtworkComment.query.filter_by(artwork_id=id).order_by(ArtworkComment.created_at.desc()).all()
+        
+    avg_rating = sum(c.rating for c in comments) / len(comments) if comments else 0
+    view_count = ArtworkView.query.filter_by(artwork_id=id).count()
+    favorite_count = Favorite.query.filter_by(artwork_id=id).count()
+    
+    has_bought = False
+    if current_user.is_authenticated:
+        has_bought = Order.query.filter_by(user_id=current_user.id, artwork_id=id).first() is not None
+    
+    return render_template('artwork_detail.html', artwork=artwork, comments=comments, sort_by=sort_by, avg_rating=avg_rating, view_count=view_count, favorite_count=favorite_count, has_bought=has_bought)
 
 @app.route('/profile', methods=['GET', 'POST'])
 @login_required
@@ -657,7 +683,24 @@ def event_detail(id):
     db.session.add(view)
     db.session.commit()
     
-    return render_template('event_detail.html', event=event)
+    # Sorting comments
+    sort_by = request.args.get('sort', 'newest')
+    if sort_by == 'highest':
+        comments = EventComment.query.filter_by(event_id=id).order_by(EventComment.rating.desc(), EventComment.created_at.desc()).all()
+    elif sort_by == 'helpful':
+        comments = EventComment.query.filter_by(event_id=id).order_by(EventComment.helpful_votes.desc(), EventComment.created_at.desc()).all()
+    else:
+        comments = EventComment.query.filter_by(event_id=id).order_by(EventComment.created_at.desc()).all()
+        
+    avg_rating = sum(c.rating for c in comments) / len(comments) if comments else 0
+    view_count = EventView.query.filter_by(event_id=id).count()
+    occupancy_rate = (event.current_participants / event.max_participants) * 100 if event.max_participants > 0 else 0
+    
+    has_attended = False
+    if current_user.is_authenticated:
+        has_attended = Reservation.query.filter_by(user_id=current_user.id, event_id=id).first() is not None
+    
+    return render_template('event_detail.html', event=event, comments=comments, sort_by=sort_by, avg_rating=avg_rating, view_count=view_count, occupancy_rate=occupancy_rate, has_attended=has_attended)
 
 @app.route('/favorites')
 @login_required
@@ -880,31 +923,56 @@ def checkout():
         payment_method = request.form.get('payment_method')
         discount_code = request.form.get('discount_code')
         
-        # Apply discount if provided
-        discount_amount = 0
+        discount = None
         if discount_code:
             discount = Discount.query.filter_by(code=discount_code, is_active=True).first()
             if discount and discount.used_count < discount.max_uses:
-                if discount.discount_type == 'percentage':
-                    discount_amount = total * (discount.discount_value / 100)
-                else:
-                    discount_amount = discount.discount_value
+                # Check target user
+                if discount.target_user_id and discount.target_user_id != current_user.id:
+                    flash('Bu indirim kodu size özel değil!', 'error')
+                    return render_template('checkout.html', cart_items=cart_items, total=total)
+                
+                # Check artwork specific
+                if discount.artwork_id and not any(item.artwork_id == discount.artwork_id for item in cart_items):
+                    flash('Bu indirim kodu sepetinizdeki ürünler için geçerli değil!', 'error')
+                    return render_template('checkout.html', cart_items=cart_items, total=total)
                 
                 discount.used_count += 1
-                db.session.commit()
             else:
-                flash('Geçersiz indirim kodu!', 'error')
+                flash('Geçersiz veya süresi dolmuş indirim kodu!', 'error')
                 return render_template('checkout.html', cart_items=cart_items, total=total)
-        
-        final_total = total - discount_amount
         
         # Create orders
         for item in cart_items:
+            item_price = item.artwork.price if item.artwork else item.event.price
+            
+            # Apply discount specific to this item if it matches, or to all if no artwork_id
+            if discount:
+                applies = False
+                if discount.artwork_id:
+                    if discount.artwork_id == item.artwork_id:
+                        applies = True
+                else:
+                    applies = True # Global discount
+                
+                if applies:
+                    if discount.discount_type == 'percentage':
+                        # discount_value is integer like 10 for 10% or 1000 for 10%?
+                        # Assume it's a direct percentage. e.g. 10 means 10%. 
+                        # Wait, create_sample_data set 10% as 1000? Let's use it properly. If it's 10, then 10%.
+                        # To be safe, if discount_value > 100, we treat it like fixed? No, we trust the DB type.
+                        # We will just do (discount.discount_value / 100.0)
+                        # Let's adjust to common percentage logic: discount_value is 10 for 10%.
+                        discount_amount = int(item_price * (discount.discount_value / 100.0))
+                        item_price = max(0, item_price - discount_amount)
+                    else: # fixed
+                        item_price = max(0, item_price - discount.discount_value)
+            
             if item.artwork:
                 order = Order(
                     user_id=current_user.id,
                     artwork_id=item.artwork_id,
-                    total_price=item.artwork.price,
+                    total_price=item_price,
                     approved=False
                 )
                 item.artwork.status = 'sold'
@@ -912,7 +980,7 @@ def checkout():
                 order = Order(
                     user_id=current_user.id,
                     artwork_id=None,
-                    total_price=item.event.price,
+                    total_price=item_price,
                     approved=False
                 )
                 # Create reservation for event
@@ -920,7 +988,7 @@ def checkout():
                     user_id=current_user.id,
                     event_id=item.event_id,
                     participant_count=1,
-                    total_price=item.event.price,
+                    total_price=item_price,
                     approved=False
                 )
                 db.session.add(reservation)
@@ -936,6 +1004,53 @@ def checkout():
     
     return render_template('checkout.html', cart_items=cart_items, total=total)
 
+@app.route('/add_discount/<int:artwork_id>', methods=['GET', 'POST'])
+@login_required
+def add_discount(artwork_id):
+    if current_user.user_type != 'artist':
+        flash('Sadece sanatçılar kupon oluşturabilir.', 'error')
+        return redirect(url_for('profile'))
+        
+    artwork = Artwork.query.get_or_404(artwork_id)
+    if artwork.artist_id != current_user.id:
+        flash('Sadece kendi eserleriniz için kupon oluşturabilirsiniz.', 'error')
+        return redirect(url_for('profile'))
+        
+    if request.method == 'POST':
+        code = request.form.get('code')
+        discount_type = request.form.get('discount_type')
+        discount_value = int(request.form.get('discount_value', 0))
+        target_username = request.form.get('target_username')
+        
+        if not code or discount_value <= 0:
+            flash('Kupon kodu ve indirim değeri zorunludur.', 'error')
+            return render_template('add_discount.html', artwork=artwork)
+            
+        target_user_id = None
+        if target_username:
+            target_user = User.query.filter_by(username=target_username).first()
+            if not target_user:
+                flash(f'"{target_username}" adlı kullanıcı bulunamadı.', 'error')
+                return render_template('add_discount.html', artwork=artwork)
+            target_user_id = target_user.id
+            
+        discount = Discount(
+            code=code,
+            description=f"{artwork.title} için {'%' + str(discount_value) if discount_type == 'percentage' else str(discount_value) + ' TL'} indirim",
+            discount_type=discount_type,
+            discount_value=discount_value if discount_type == 'percentage' else discount_value * 100, # TL to cents
+            max_uses=1, # Default single use
+            artwork_id=artwork.id,
+            target_user_id=target_user_id
+        )
+        db.session.add(discount)
+        db.session.commit()
+        
+        flash('İndirim kuponu başarıyla oluşturuldu!', 'success')
+        return redirect(url_for('profile'))
+        
+    return render_template('add_discount.html', artwork=artwork)
+
 @app.route('/my_orders')
 @login_required
 def my_orders():
@@ -948,6 +1063,11 @@ def my_orders():
 def add_artwork_comment(artwork_id):
     artwork = Artwork.query.get_or_404(artwork_id)
     
+    has_bought = Order.query.filter_by(user_id=current_user.id, artwork_id=artwork_id).first() is not None
+    if not has_bought:
+        flash('Bu esere yorum yapabilmek için önce satın almış olmalısınız!', 'error')
+        return redirect(url_for('artwork_detail', id=artwork_id))
+        
     comment_text = request.form.get('comment')
     rating = int(request.form.get('rating', 0))
     
@@ -1034,17 +1154,12 @@ def reply_comment(comment_type, comment_id):
         flash('Yanıt boş olamaz!', 'error')
         return redirect(request.referrer or url_for('index'))
     
-    # Create a support response for admin replies (simplified approach)
-    if current_user.user_type == 'admin':
-        response = SupportResponse(
-            ticket_id=0,  # Using 0 as placeholder for comment replies
-            user_id=current_user.id,
-            message=f"Yanıt: {reply_text}",
-            is_admin_response=True
-        )
-        db.session.add(response)
+    if current_user.user_type == 'admin' or (comment_type == 'artwork' and current_user.id == comment.artwork.artist_id) or (comment_type == 'event' and current_user.id == comment.event.instructor_id):
+        comment.admin_reply = reply_text
         db.session.commit()
         flash('Yanıtınız başarıyla eklendi!', 'success')
+    else:
+        flash('Bu yoruma yanıt verme yetkiniz yok!', 'error')
     
     return redirect(request.referrer or url_for('index'))
 

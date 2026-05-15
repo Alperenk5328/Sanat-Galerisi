@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Talep Detayı - Online Sanat Galerisi{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-0">Talep #{{ ticket.id }}: {{ ticket.subject }}</h2>
+            <a href="{{ url_for('my_tickets') }}" class="btn btn-outline-secondary">Geri Dön</a>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>Durum:</strong>
+                    {% if ticket.status == 'open' %}
+                        <span class="badge bg-primary">Açık</span>
+                    {% elif ticket.status == 'in_progress' %}
+                        <span class="badge bg-warning text-dark">İşlemde</span>
+                    {% elif ticket.status == 'resolved' %}
+                        <span class="badge bg-success">Çözüldü</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Kapalı</span>
+                    {% endif %}
+                </div>
+                <div class="text-muted small">
+                    Oluşturulma: {{ ticket.created_at.strftime('%d.%m.%Y %H:%M') }}
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="card-text" style="white-space: pre-wrap;">{{ ticket.message }}</p>
+            </div>
+        </div>
+
+        <h4 class="mb-3">Yanıtlar</h4>
+        
+        <div class="responses mb-4">
+            {% for response in ticket.responses %}
+            <div class="card mb-3 {% if response.is_admin_response %}border-primary{% else %}border-secondary{% endif %}">
+                <div class="card-header d-flex justify-content-between align-items-center {% if response.is_admin_response %}bg-primary text-white{% else %}bg-light{% endif %}">
+                    <div>
+                        <strong>{% if response.is_admin_response %}Müşteri Hizmetleri{% else %}Siz{% endif %}</strong>
+                    </div>
+                    <div class="small {% if response.is_admin_response %}text-white-50{% else %}text-muted{% endif %}">
+                        {{ response.created_at.strftime('%d.%m.%Y %H:%M') }}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="card-text" style="white-space: pre-wrap;">{{ response.message }}</p>
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-secondary">Henüz yanıt bulunmuyor. Ekibimiz talebinizi incelemektedir.</div>
+            {% endfor %}
+        </div>
+
+        {% if ticket.status != 'closed' and ticket.status != 'resolved' %}
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Yanıt Ekle</h5>
+                <form action="{{ url_for('add_ticket_response', ticket_id=ticket.id) }}" method="POST">
+                    <div class="mb-3">
+                        <textarea class="form-control" name="message" rows="4" required placeholder="Mesajınızı buraya yazın..."></textarea>
+                    </div>
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary">Yanıt Gönder</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

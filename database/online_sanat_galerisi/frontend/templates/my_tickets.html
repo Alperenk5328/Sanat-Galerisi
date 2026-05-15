@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Destek Taleplerim - Online Sanat Galerisi{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Destek Taleplerim</h1>
+        <a href="{{ url_for('support') }}" class="btn btn-primary">Yeni Talep Oluştur</a>
+    </div>
+
+    {% if tickets %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Talep No</th>
+                    <th>Konu</th>
+                    <th>Durum</th>
+                    <th>Öncelik</th>
+                    <th>Tarih</th>
+                    <th>İşlem</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ticket in tickets %}
+                <tr>
+                    <td>#{{ ticket.id }}</td>
+                    <td>{{ ticket.subject }}</td>
+                    <td>
+                        {% if ticket.status == 'open' %}
+                            <span class="badge bg-primary">Açık</span>
+                        {% elif ticket.status == 'in_progress' %}
+                            <span class="badge bg-warning text-dark">İşlemde</span>
+                        {% elif ticket.status == 'resolved' %}
+                            <span class="badge bg-success">Çözüldü</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Kapalı</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if ticket.priority == 'urgent' %}
+                            <span class="badge bg-danger">Acil</span>
+                        {% elif ticket.priority == 'high' %}
+                            <span class="badge bg-warning text-dark">Yüksek</span>
+                        {% elif ticket.priority == 'medium' %}
+                            <span class="badge bg-info text-dark">Normal</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Düşük</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ ticket.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                    <td>
+                        <a href="{{ url_for('ticket_detail', ticket_id=ticket.id) }}" class="btn btn-sm btn-outline-primary">Görüntüle</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-headset fa-4x text-muted mb-3"></i>
+        <h4 class="text-muted">Henüz destek talebiniz bulunmuyor</h4>
+        <p class="text-muted">Bir sorunuz veya sorununuz varsa hemen bir talep oluşturabilirsiniz.</p>
+        <a href="{{ url_for('support') }}" class="btn btn-primary">Talep Oluştur</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

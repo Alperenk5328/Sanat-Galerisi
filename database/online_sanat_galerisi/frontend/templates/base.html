@@ -28,6 +28,10 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('events') }}">Etkinlikler</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('compare') }}">Karşılaştırma</a>
+                    </li>
+
                 </ul>
                 <ul class="navbar-nav">
                     {% if current_user.is_authenticated %}
@@ -41,6 +45,8 @@
                                 <li><a class="dropdown-item" href="{{ url_for('cart') }}">Sepet</a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('my_orders') }}">Siparişler</a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('my_reservations') }}">Rezervasyonlar</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('my_tickets') }}">Destek Talepleri</a></li>
+
                                 {% if current_user.user_type == 'admin' %}
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="{{ url_for('admin') }}">Admin Panel</a></li>

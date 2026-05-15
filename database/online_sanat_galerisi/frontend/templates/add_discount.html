@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}İndirim Kuponu Ekle - Online Sanat Galerisi{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4>{{ artwork.title }} için İndirim Kuponu Ekle</h4>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('add_discount', artwork_id=artwork.id) }}" method="POST">
+                    <div class="mb-3">
+                        <label for="code" class="form-label">Kupon Kodu</label>
+                        <input type="text" class="form-control" id="code" name="code" required 
+                               placeholder="Örn: YAZ10, OZEL50, BANAOZEL">
+                        <div class="form-text">Müşterilerin ödeme sırasında gireceği koddur (Boşluksuz ve İngilizce karakterler önerilir).</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="discount_type" class="form-label">İndirim Tipi</label>
+                        <select class="form-select" id="discount_type" name="discount_type" required>
+                            <option value="percentage">Yüzde (%)</option>
+                            <option value="fixed">Sabit Tutar (TL)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="discount_value" class="form-label">İndirim Miktarı</label>
+                        <input type="number" class="form-control" id="discount_value" name="discount_value" min="1" required>
+                        <div class="form-text" id="discount_value_help">Yüzde olarak (örn: 15) veya TL olarak (örn: 100) giriniz.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="target_username" class="form-label">Hedef Kullanıcı Adı (İsteğe Bağlı)</label>
+                        <input type="text" class="form-control" id="target_username" name="target_username" 
+                               placeholder="Belirli bir kullanıcıya özel yapmak istiyorsanız kullanıcı adını girin">
+                        <div class="form-text text-muted">Boş bırakırsanız kodu bilen herkes kullanabilir (Sadece 1 kez geçerlidir).</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('profile') }}" class="btn btn-secondary">İptal</a>
+                        <button type="submit" class="btn btn-primary">Kupon Oluştur</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+    document.getElementById('discount_type').addEventListener('change', function() {
+        var helpText = document.getElementById('discount_value_help');
+        if (this.value === 'percentage') {
+            helpText.textContent = 'Yüzde olarak bir değer giriniz (örn: %20 için 20). En fazla %100 olabilir.';
+            document.getElementById('discount_value').max = 100;
+        } else {
+            helpText.textContent = 'Sabit TL tutarı olarak bir değer giriniz (örn: 50 TL için 50).';
+            document.getElementById('discount_value').removeAttribute('max');
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}

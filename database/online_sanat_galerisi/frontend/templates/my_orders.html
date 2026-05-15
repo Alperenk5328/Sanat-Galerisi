@@ -43,7 +43,7 @@
                                 {% endif %}
                             </td>
                             <td>{{ order.created_at.strftime('%d.%m.%Y') }}</td>
-                            <td>₺{{ "%.2f"|format(order.total_price) }}</td>
+                            <td>₺{{ "%.2f"|format(order.total_price / 100) }}</td>
                             <td>
                                 {% if order.status == 'pending' %}
                                 <span class="badge bg-warning">Beklemede</span>

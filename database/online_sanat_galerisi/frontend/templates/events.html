@@ -82,6 +82,7 @@
                                         <a href="{{ url_for('reserve_event', event_id=event.id) }}" 
                                            class="btn btn-primary btn-sm">Rezervasyon Yap</a>
                                         {% endif %}
+                                        <a href="{{ url_for('add_to_comparison', item_type='event', item_id=event.id) }}" class="btn btn-sm btn-outline-secondary" title="Karşılaştır"><i class="fas fa-balance-scale"></i></a>
                                     </div>
                                 </div>
                             </div>
