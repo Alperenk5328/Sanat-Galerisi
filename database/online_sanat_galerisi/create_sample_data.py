@@ -271,7 +271,47 @@ def create_sample_data():
         
         db.session.commit()
         
-        print("Örnek veriler başarıyla oluşturuldu!")
+        # --- NEW TEST DATA FOR FEATURES 10-16 ---
+        from backend.app import Order, Reservation, ArtworkComment, EventComment, SupportTicket, SupportResponse
+        
+        # 1. Orders
+        users_obj = User.query.all()
+        order1 = Order(user_id=users_obj[3].id, artwork_id=1, total_price=35000, status='completed', approved=True)
+        order2 = Order(user_id=users_obj[4].id, artwork_id=2, total_price=45000, status='completed', approved=True)
+        db.session.add_all([order1, order2])
+        db.session.commit()
+        
+        # 2. Reservations
+        res1 = Reservation(user_id=users_obj[3].id, event_id=1, participant_count=1, total_price=35000, status='confirmed', approved=True)
+        res2 = Reservation(user_id=users_obj[4].id, event_id=2, participant_count=2, total_price=90000, status='confirmed', approved=True)
+        db.session.add_all([res1, res2])
+        
+        event1 = Event.query.get(1)
+        event1.current_participants += 1
+        event2 = Event.query.get(2)
+        event2.current_participants += 2
+        db.session.commit()
+        
+        # 3. Comments (with and without admin replies)
+        aw_comment1 = ArtworkComment(user_id=users_obj[3].id, artwork_id=1, comment="Harika bir eser, renkleri çok canlı!", rating=5, helpful_votes=2)
+        aw_comment2 = ArtworkComment(user_id=users_obj[4].id, artwork_id=2, comment="Fena değil ama beklediğimden küçük.", rating=3, admin_reply="Geri bildiriminiz için teşekkürler. Boyutlar açıklama kısmında yer almaktadır.")
+        ev_comment1 = EventComment(user_id=users_obj[3].id, event_id=1, comment="Eğitmen çok bilgiliydi, kesinlikle tavsiye ederim.", rating=5, helpful_votes=5)
+        
+        db.session.add_all([aw_comment1, aw_comment2, ev_comment1])
+        db.session.commit()
+        
+        # 4. Support Tickets
+        ticket1 = SupportTicket(user_id=users_obj[3].id, subject="Kargom nerede?", message="Dün sipariş ettiğim tablo henüz kargoya verilmedi.", status="open", priority="high")
+        ticket2 = SupportTicket(user_id=users_obj[4].id, subject="Etkinlik iadesi", message="Gelecek haftaki etkinliğe katılamayacağım.", status="resolved", priority="medium")
+        db.session.add_all([ticket1, ticket2])
+        db.session.commit()
+        
+        # Ticket Responses
+        resp1 = SupportResponse(ticket_id=ticket2.id, user_id=users_obj[0].id, message="Talebiniz alınmış olup ücret iadeniz yapılmıştır.", is_admin_response=True)
+        db.session.add(resp1)
+        db.session.commit()
+
+        print("Örnek veriler (Siparişler, Yorumlar, Biletler vb. dahil) başarıyla oluşturuldu!")
         print("\nKullanıcı Hesapları:")
         print("Admin: admin / admin123")
         print("Sanatçı 1: ahmet_sanatci / sanat123")
