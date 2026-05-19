@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Rezervasyonu Güncelle - {{ reservation.event.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-body">
+                    <h1 class="mb-4">Rezervasyonu Güncelle</h1>
+
+                    <div class="mb-4">
+                        <h5>{{ reservation.event.title }}</h5>
+                        <p class="text-muted">{{ reservation.event.description[:150] }}...</p>
+
+                        <div class="row">
+                            <div class="col-6">
+                                <small class="d-block">
+                                    <i class="fas fa-calendar"></i> {{ reservation.event.event_date.strftime('%d.%m.%Y %H:%M') }}
+                                </small>
+                                <small class="d-block">
+                                    <i class="fas fa-clock"></i> {{ reservation.event.duration_hours }} saat
+                                </small>
+                            </div>
+                            <div class="col-6">
+                                <small class="d-block">
+                                    <i class="fas fa-users"></i> {{ reservation.event.current_participants }}/{{ reservation.event.max_participants }}
+                                </small>
+                                <small class="d-block">
+                                    <i class="fas fa-map-marker-alt"></i> {{ reservation.event.location }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label class="form-label">Katılımcı Sayısı</label>
+                            <select name="participant_count" class="form-select" required>
+                                {% set available_slots = reservation.event.max_participants - reservation.event.current_participants + reservation.participant_count %}
+                                {% for i in range(1, available_slots + 1) %}
+                                <option value="{{ i }}" {% if i == reservation.participant_count %}selected{% endif %}>
+                                    {{ i }} kişi
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            Mevcut katılımcı: {{ reservation.participant_count }} kişi. Kalan kontenjan: {{ reservation.event.max_participants - reservation.event.current_participants + reservation.participant_count }} kişi.
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Rezervasyonu Güncelle</button>
+                            <a href="{{ url_for('my_reservations') }}" class="btn btn-outline-secondary">Geri Dön</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

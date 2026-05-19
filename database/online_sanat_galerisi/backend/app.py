@@ -784,7 +784,7 @@ def update_reservation(reservation_id):
             
             reservation.event.current_participants += diff
             reservation.participant_count = participant_count
-            reservation.total_price = 0
+            reservation.total_price = reservation.event.price * participant_count
             
             db.session.commit()
             flash('Rezervasyon güncellendi!', 'success')
